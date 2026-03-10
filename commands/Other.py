@@ -24,7 +24,7 @@ if Bot.DeweyConfig["gacha-enabled"]:
         @discord.app_commands.allowed_installs(guilds=True, users=False)
         async def reminder_task(ctx : discord.Interaction):
             if Permissions.is_override(ctx):
-                if not gachalib.reminder_task.is_running:
+                if not gachalib.reminder_task.is_running():
                     gachalib.reminder_task.start()
                     await ctx.response.send_message(
                         f"okay!", ephemeral=True
@@ -38,7 +38,7 @@ if Bot.DeweyConfig["gacha-enabled"]:
         async def check_reminder_task(ctx : discord.Interaction):
             if Permissions.is_override(ctx):
                 await ctx.response.send_message(
-                    gachalib.reminder_task.is_running, ephemeral=True
+                    gachalib.reminder_task.is_running(), ephemeral=True
                 )
 
 
