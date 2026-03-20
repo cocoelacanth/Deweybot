@@ -185,9 +185,9 @@ async def gacha_browsecards(ctx : discord.Interaction, page:int = 1):
 
 @gacha_group.command(name="editcard", description="Re-submit an edited gacha card (or admin)!")
 async def gacha_editcard(ctx : discord.Interaction, id: int, name: str = "", description: str = ""):
-    if ctx.guild_id != Bot.DeweyConfig["main-guild"]: 
-        await ctx.response.send_message("You can only run this in the main server!!!!!", ephemeral=True)
-        return
+    #if ctx.guild_id != Bot.DeweyConfig["main-guild"]: 
+    #    await ctx.response.send_message("You can only run this in the main server!!!!!", ephemeral=True)
+    #    return
     if not Permissions.banned(ctx):
         if Bot.DeweyConfig["review"][0] == "dm":
             approval_channel = await Bot.client.fetch_user(Bot.DeweyConfig["review"][1])
@@ -206,7 +206,7 @@ async def gacha_editcard(ctx : discord.Interaction, id: int, name: str = "", des
                 gachalib.cards.update_card(id,"description",description)
                 changed_anything = True
             
-            await ctx.response.send_message("Updated")
+            await ctx.response.send_message("Updated",ephemeral=True)
             if changed_anything:
                 gachalib.cards.update_card(id,"accepted",False)
                 _, card = gachalib.cards.get_card_by_id(id)
@@ -220,7 +220,7 @@ async def gacha_editcard(ctx : discord.Interaction, id: int, name: str = "", des
                 message_view.message = await approval_channel.send(embed=embed,view=message_view)
                 gachalib.cards.update_card(id,"request_message_id",message_view.message.id)
         else:
-            await ctx.response.send_message("Card does not exist or you don't own it!")
+            await ctx.response.send_message("Card does not exist or you don't own it!",ephemeral=True)
 
 
 @gacha_group.command(name="stats", description="card stats")
