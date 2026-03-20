@@ -14,8 +14,10 @@ if Bot.DeweyConfig["reminders-enabled"]:
     async def remindme(ctx : discord.Interaction, weeks:int=0, days:int=0, hours:int=0, minutes:int=0, note: str = ""):
         if weeks == 0 and days == 0 and hours == 0 and minutes == 0:
             await ctx.response.send_message("you have to select a time", ephemeral=True)
+            return
         if len(note) > 256:
             await ctx.response.send_message("you should shorten your note")
+            return
 
         now = Remindme.datetime.datetime.today()
         delta = Remindme.datetime.timedelta(weeks=weeks, days=days, hours=hours, minutes=minutes)
