@@ -181,7 +181,7 @@ async def gacha_browsecards(ctx : discord.Interaction, page:int = 1):
         if type(embed) == discord.Embed:
             await ctx.response.send_message(content="", embed=embed, view=view)
         else:
-            await ctx.response.send_message(content=embed, embed=None, view=view)
+            await ctx.response.send_message(content=embed, view=view)
 
 @gacha_group.command(name="editcard", description="Re-submit an edited gacha card (or admin)!")
 async def gacha_editcard(ctx : discord.Interaction, id: int, name: str = "", description: str = ""):
