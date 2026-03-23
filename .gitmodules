@@ -1,0 +1,3 @@
+[submodule "other/dewey_obs"]
+	path = other/dewey_obs
+	url = https://github.com/Jased-0001/dewey_obs

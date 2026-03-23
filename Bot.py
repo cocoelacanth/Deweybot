@@ -113,6 +113,7 @@ if DeweyConfig["gacha-enabled"]: import commands.Gacha
 if DeweyConfig["gif-enabled"]: import commands.Gif
 if DeweyConfig["kfad-enabled"]: import commands.KFAD
 if DeweyConfig["deweycoins-enabled"]: import commands.Bank
+if DeweyConfig["obs-integration-enabled"]: import commands.OBS_Integration
 import commands.Settings
 import commands.Other
 

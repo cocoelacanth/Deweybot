@@ -35,6 +35,13 @@ kfad-role:
 kfad-channels: []
 kfad-god-channel:  
 
+# obs integration
+obs-integration-enabled: 
+obs-integration-secret: 
+obs-integration-port: 
+obs-integration-host: # Should be an ip (0.0.0.0 for all interfaces)
+obs-integration-post-host:  # Should be like "proto://host:port" (no trailing slash) 
+
 # others
 nick-enabled: 
 gif-enabled: 

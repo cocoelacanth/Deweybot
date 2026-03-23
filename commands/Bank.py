@@ -6,6 +6,8 @@ from discord.ext import commands, tasks
 import Bot
 from moneylib.views.doors import DoorsView
 import other.Permissions as Permissions
+from io import BytesIO
+import requests
 
 from moneylib import *
 from moneylib.views import *
@@ -44,7 +46,41 @@ async def money_stats(ctx : discord.Interaction, show: bool=True, user: discord.
     await ctx.response.send_message(embed=embed, ephemeral=not show)
 
 
+@coin_group.command(name="buy-image", description="Show an image on stream with D¢100")
+async def buy_image(ctx : discord.Interaction, image : discord.Attachment):
+    user = moneylib.getUserInfo(user=ctx.user.id)
+    if user.balance >= 100:
+        try:
+            test_req = requests.get(Bot.DeweyConfig["obs-integration-post-host"] + "/test")
+            print(test_req.content)
+            
+            if test_req.content.decode() == "hello i am dewey_obs":
+                imaaage = BytesIO()
+                await image.save(fp=imaaage)
 
+                resp = requests.post(Bot.DeweyConfig["obs-integration-post-host"] + "/image",
+                                    headers={"Authorization": f"Bearer {Bot.DeweyConfig["obs-integration-secret"]}"},
+                                    files={"image": imaaage})
+                if resp.status_code == 201:
+                    await ctx.response.send_message('Successfully sent image')
+
+                    assert Bot.client.user, "bot has no user"
+                    moneylib.giveCoins(user=ctx.user.id, coins=-100)
+                    moneylib.giveCoins(user=Bot.client.user.id, coins=100)
+                elif resp.status_code == 401:
+                    await ctx.response.send_message('Error (incorrect secret)!!!!! ' + resp.content.decode())
+                elif resp.status_code == 400:
+                    await ctx.response.send_message('Error (missing image)!!!!! ' + resp.content.decode())
+                else:
+                    await ctx.response.send_message('Error (unknown)!!!!! ' + resp.content.decode())
+                
+                imaaage.close()
+                return
+        except requests.exceptions.ConnectionError: pass
+        
+        await ctx.response.send_message("The server isn't running!!! your account has not been charaged")
+    else:
+        await ctx.response.send_message("You need D¢100 to buy these doors!")
 
 
 gambling_group = discord.app_commands.Group(name="gambling", description="Get rich quick using YOUR CHILD'S COLLEGE FUND!!!!")
