@@ -72,9 +72,8 @@ async def adminrepeat(ctx : discord.Interaction, what_said: str, channel: discor
         elif Bot.DeweyConfig["dewey-repeat-log"][0] == "channel":
             log_channel = await Bot.client.fetch_channel(Bot.DeweyConfig["dewey-repeat-log"][1])
         else: raise Exception("Dewey config option \"review\" is not set to 'channel' or 'dm'")
-        
+
         assert not isinstance(log_channel,(discord.ForumChannel,discord.CategoryChannel,Bot.PrivateChannel)), "log channel assertion"
-        assert channel, "channel assertion"
 
         if channel == None:
             channel = ctx.channel
