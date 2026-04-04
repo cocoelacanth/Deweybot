@@ -47,7 +47,10 @@ responses = [
 async def on_message(message: discord.Message):
     if Bot.DeweyConfig["grok-responses"]:
         if "@grok is this" in message.content.lower():
-            await message.reply(random.choice(responses))
+            if random.random() < 0.02:
+                await message.reply("oh poor baby 🥺🥺 do you need the robot to make you pictures? 🥺🥺 yeah? 🥺🥺 do you need the bo-bot to write you essay too? yeah ??? you can't do it?? 🥺🥺 you're a moron??🥺🥺 do you need chat gpt to fuck your wife ?? 🥺🥺🥺")
+            else:
+                await message.reply(random.choice(responses))
             return
     if Bot.DeweyConfig["suggestions-enabled"]:
         if message.author == Bot.client.user:
