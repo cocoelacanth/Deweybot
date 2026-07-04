@@ -18,24 +18,28 @@ type_literal       = Literal["TYPE_ROLE", "TYPE_MEMBER"]
 permission_tree = {
     PERMISSION_ADMIN: {
         "name": "PERMISSION_ADMIN",
+        "inherit_admin": False,
         "id": PERMISSION_ADMIN,
         "users": [],
         "roles": []
     },
     PERMISSION_GFAD_DISALLOWED: {
         "name": "PERMISSION_GFAD_DISALLOWED",
+        "inherit_admin": False,
         "id": PERMISSION_GFAD_DISALLOWED,
         "users": [],
         "roles": []
     },
     PERMISSION_REPEAT: {
         "name": "PERMISSION_REPEAT",
+        "inherit_admin": True,
         "id": PERMISSION_REPEAT,
         "users": [],
         "roles": []
     },
     PERMISSION_GACHA_APPROVE: {
         "name": "PERMISSION_GACHA_APPROVE",
+        "inherit_admin": True,
         "id": PERMISSION_GACHA_APPROVE,
         "users": [],
         "roles": []
@@ -74,7 +78,7 @@ def check_permission(ctx: discord.Interaction | discord.Member | discord.User ,p
         user = ctx
 
 
-    if not permission == PERMISSION_ADMIN or not permission == PERMISSION_GFAD_DISALLOWED:
+    if permission_tree[permission]["inherit_admin"]:
         if check_permission(ctx=ctx, permission=PERMISSION_ADMIN): return True
         
     if user.id in permission_tree[permission]["users"]:
