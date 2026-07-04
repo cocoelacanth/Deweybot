@@ -1,5 +1,6 @@
 #! /usr/bin/env python3
 
+import pymysql.cursors
 from yaml import load,Loader
 import sqlite3, pymysql
 

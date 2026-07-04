@@ -40,8 +40,8 @@ class botClient(discord.Client):
         self.main_guild: discord.Guild | None
         self.synced = False
         self.already_ran_once = False
-        self.on_ready_functions: list[MethodType | FunctionType] = []
-        self.on_message_functions: list[CoroutineType | FunctionType] = []
+        self.on_ready_functions: list[MethodType | FunctionType | function] = []
+        self.on_message_functions: list[CoroutineType | FunctionType | function] = []
 
     async def on_ready(self):
         if not self.already_ran_once:

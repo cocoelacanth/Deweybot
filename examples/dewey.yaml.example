@@ -20,17 +20,11 @@ webdav-username:
 webdav-password: 
 
 # Gacha settings
-gacha_enabled: 
+gacha-enabled: 
 imageurl: # URL where uploaded images are saved 
 image-save-path: # where image should go
 roll-timeout:  # seconds
-gacha-reminder-task:
-
-# suggestions
-suggestions_enabled: 
-
-# deweycoins
-deweycoins-enabled: 
+gacha-reminder-task: 
 
 # gfad
 kfad-enabled: 
@@ -46,6 +40,8 @@ obs-integration-host: # Should be an ip (0.0.0.0 for all interfaces)
 obs-integration-post-host:  # Should be like "proto://host:port" (no trailing slash) 
 
 # others
+deweycoins-enabled: 
+suggestions-enabled: 
 nick-enabled: 
 gif-enabled: 
 reminders-enabled: 

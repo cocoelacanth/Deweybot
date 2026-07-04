@@ -71,8 +71,12 @@ async def gfad_help(ctx : discord.Interaction):
 
 @gfad_group.command(name="z-transfer", description="! ADMIN ONLY ! mod transfer god")
 @discord.app_commands.check(predicate=Permissions.admin_check)
-async def gfad_help(ctx : discord.Interaction, pick : discord.Member):
+async def gfad_transfer(ctx : discord.Interaction, pick : discord.Member):
     await ctx.response.defer(ephemeral=False,thinking=True)
+
+    if not ctx.guild:
+        await ctx.followup.send("you must run this in the main server")
+        return
 
     role = ctx.guild.get_role(Bot.DeweyConfig["kfad-role"])
     assert role, "could not find role"

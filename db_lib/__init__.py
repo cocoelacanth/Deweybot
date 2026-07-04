@@ -1,5 +1,6 @@
 import sqlite3
 import pymysql
+import pymysql.cursors
 import Bot
 import other.Logger as Logger
 
