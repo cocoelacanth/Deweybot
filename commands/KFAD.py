@@ -65,8 +65,7 @@ async def get_qualifiers(message_requirement:int, range_start:datetime.datetime,
 
 @gfad_group.command(name="help", description="What is a 'god' and why for a day?")
 async def gfad_help(ctx : discord.Interaction):
-    if not Permissions.banned(ctx):
-        await ctx.response.send_message(content="Test!", ephemeral=True)
+    await ctx.response.send_message(content="Test!", ephemeral=True)
 
 
 @gfad_group.command(name="z-transfer", description="! ADMIN ONLY ! mod transfer god")

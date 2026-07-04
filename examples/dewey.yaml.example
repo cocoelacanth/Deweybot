@@ -2,8 +2,6 @@
 token: 
 main-guild:
 
-banned-role: # optional
-
 # Db settings
 database-type:  # Set to SQLite3 or MySQL
 

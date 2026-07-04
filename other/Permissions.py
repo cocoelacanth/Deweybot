@@ -12,8 +12,9 @@ PERMISSION_GFAD_DISALLOWED = 2
 PERMISSION_REPEAT          = 3
 PERMISSION_GACHA_APPROVE   = 4
 PERMISSION_HONEYPOT_EXEMPT = 5
+PERMISSION_BANNED          = 6
 
-permission_literal = Literal["PERMISSION_ADMIN", "PERMISSION_GFAD_DISALLOWED", "PERMISSION_REPEAT", "PERMISSION_GACHA_APPROVE", "PERMISSION_HONEYPOT_EXEMPT"]
+permission_literal = Literal["PERMISSION_ADMIN", "PERMISSION_GFAD_DISALLOWED", "PERMISSION_REPEAT", "PERMISSION_GACHA_APPROVE", "PERMISSION_HONEYPOT_EXEMPT", "PERMISSION_BANNED"]
 type_literal       = Literal["TYPE_ROLE", "TYPE_MEMBER"]
 
 permission_tree = {
@@ -47,8 +48,15 @@ permission_tree = {
     },
     PERMISSION_HONEYPOT_EXEMPT: {
         "name": "PERMISSION_HONEYPOT_EXEMPT",
-        "inherit_admin": False,
+        "inherit_admin": True,
         "id": PERMISSION_HONEYPOT_EXEMPT,
+        "users": [],
+        "roles": []
+    },
+    PERMISSION_BANNED: {
+        "name": "PERMISSION_BANNED",
+        "inherit_admin": False,
+        "id": PERMISSION_BANNED,
         "users": [],
         "roles": []
     }
@@ -61,22 +69,10 @@ def admin_check(ctx:discord.Interaction) -> bool:                      return ch
 def gfad_disallowed_check(ctx:discord.Interaction) -> bool:            return check_permission(ctx=ctx, permission=PERMISSION_GFAD_DISALLOWED)
 def repeat_check(ctx:discord.Interaction) -> bool:                     return check_permission(ctx=ctx, permission=PERMISSION_REPEAT)
 def gacha_approve_check(ctx:discord.Interaction) -> bool:              return check_permission(ctx=ctx, permission=PERMISSION_GACHA_APPROVE)
+def banned_check(ctx:discord.Interaction) -> bool:                     return check_permission(ctx=ctx, permission=PERMISSION_BANNED)
 
 
 #[y.id for y in ctx.user.roles]
-
-def banned(ctx: discord.Interaction) -> bool:
-    if ctx.guild_id == None:
-        return False
-    
-    if isinstance(ctx.user, discord.User):
-        return False
-
-    user_roles = [y.id for y in ctx.user.roles]
-    for i in user_roles:
-        if i == Bot.DeweyConfig["banned-role"]:
-            return True
-    return False
 
 def check_permission(ctx: discord.Interaction | discord.Member | discord.User ,permission:int) -> bool:
     user = None

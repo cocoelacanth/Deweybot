@@ -1,3 +1,4 @@
+from discord.app_commands.errors import AppCommandError
 import other.Logger as Logger
 
 if __name__ == "__main__":
@@ -100,7 +101,15 @@ class botClient(discord.Client):
     async def on_error(self, event, error = None):
         a = traceback.format_exc()
         Logger.log(a, type=Logger.error)
-        channel = await Channels.get_channel(channel_def=Channels.get_channels(channeltype=Channels.CHANNEL_ERRORS)[0])
+        channeldef = Channels.get_channels(channeltype=Channels.CHANNEL_ERRORS)
+
+        if len(channeldef) == 0:
+            if error:
+                raise error # give up
+            else:
+                return
+
+        channel = await Channels.get_channel(channel_def=channeldef[0])
         buffer = io.BytesIO()
         buffer.write(a.encode())
         buffer.seek(0)
@@ -108,33 +117,48 @@ class botClient(discord.Client):
         await channel.send(f"<@322495136108118016> got an report for you boss (event {event})\n",file=discord.File(fp=buffer,filename="error.txt"))
         buffer.close()
 
+class DeweyTree(discord.app_commands.CommandTree):
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        # check if banned
+        if Permissions.check_permission(interaction.user,Permissions.PERMISSION_BANNED):
+            raise discord.app_commands.errors.CheckFailure
+            return False
+        
+        return True
+    
+    async def on_error(self, interaction: discord.Interaction[discord.Client], error: AppCommandError) -> None:
+        async def inform(ctx:discord.Interaction,message:str,ephemeral:bool=True):
+            if ctx.response.is_done():
+                await ctx.followup.send(content=message,ephemeral=ephemeral)
+            else:
+                await ctx.response.send_message(content=message,ephemeral=ephemeral)
+            
+        if isinstance(error, discord.app_commands.errors.CheckFailure):
+            await inform(ctx=interaction, message="Yo. You not part of the \"Gang\"",ephemeral=True)
+        else:
+            a = traceback.format_exc()
+            Logger.log(a, type=Logger.error)
+            channeldef = Channels.get_channels(channeltype=Channels.CHANNEL_ERRORS)
+
+            if len(channeldef) == 0:
+                raise error # give up
+
+            channel = await Channels.get_channel(channel_def=channeldef[0])
+            buffer = io.BytesIO()
+            buffer.write(a.encode())
+            buffer.seek(0)
+            assert isinstance(channel,(discord.TextChannel, discord.Thread, discord.DMChannel)), "error channel assertion"
+            await channel.send(f"<@322495136108118016> got an report for you boss (FROM ON_APP_COMMAND_ERROR)\n",file=discord.File(fp=buffer,filename="error.txt"))
+            buffer.close()
+            
+            await interaction.followup.send(content="Ay! I gotted an error! Please ping the owners of me!")
+
+
 
 client = botClient()
-tree = discord.app_commands.CommandTree(client, allowed_contexts=discord.app_commands.AppCommandContext(guild=True,dm_channel=True,private_channel=True),
+tree = DeweyTree(client, allowed_contexts=discord.app_commands.AppCommandContext(guild=True,dm_channel=True,private_channel=True),
                                         allowed_installs=discord.app_commands.AppInstallationType(guild=True,user=True))
-
-@tree.error
-async def on_app_command_error(interaction: discord.Interaction, error):
-    async def inform(ctx:discord.Interaction,message:str,ephemeral:bool=True):
-        if ctx.response.is_done():
-            await ctx.followup.send(content=message,ephemeral=ephemeral)
-        else:
-            await ctx.response.send_message(content=message,ephemeral=ephemeral)
-        
-    if isinstance(error, discord.app_commands.errors.CheckFailure):
-        await inform(ctx=interaction, message="Yo. You not part of the \"Gang\"",ephemeral=True)
-    else:
-        a = traceback.format_exc()
-        Logger.log(a, type=Logger.error)
-        channel = await Channels.get_channel(channel_def=Channels.get_channels(channeltype=Channels.CHANNEL_ERRORS)[0])
-        buffer = io.BytesIO()
-        buffer.write(a.encode())
-        buffer.seek(0)
-        assert isinstance(channel,(discord.TextChannel, discord.Thread, discord.DMChannel)), "error channel assertion"
-        await channel.send(f"<@322495136108118016> got an report for you boss (FROM ON_APP_COMMAND_ERROR)\n",file=discord.File(fp=buffer,filename="error.txt"))
-        buffer.close()
-        
-        await interaction.followup.send(content="Ay! I gotted an error! Please ping the owners of me!")
+    
 
 if DeweyConfig["nick-enabled"]: import commands.Nick
 if DeweyConfig["gacha-enabled"]: import commands.Gacha

@@ -40,8 +40,7 @@ gacha_group = discord.app_commands.Group(name="gacha", description="Dewey GACHA!
 
 @gacha_group.command(name="help", description="What is a gacha?")
 async def gacha_help(ctx : discord.Interaction):
-    if not Permissions.banned(ctx):
-        embed = discord.Embed(title="Dewey Gacha!",description="""Gacha cards are a collection of different characters on cards that you get randomly from packs. Like pokemon but without playing with them.
+    embed = discord.Embed(title="Dewey Gacha!",description="""Gacha cards are a collection of different characters on cards that you get randomly from packs. Like pokemon but without playing with them.
 
 ### *How do I play?*
 Use the `/gacha-roll` command! You get 3 cards, 2 of them will be common or uncommon, and one of them can be Rare, Epic, or even Legendary
@@ -53,41 +52,39 @@ Use `/gacha-inventory` to view your inventory as a whole. Use the ID to see your
 The `/gacha-submitcard` command allows you to submit a card for approval. You give your card a name, a description, and a picture. You can add a note for the reviewer on how rare the card is or provide context on a card.
 """)
         
-        await ctx.response.send_message(embed=embed,ephemeral=True)
+    await ctx.response.send_message(embed=embed,ephemeral=True)
 
 
 
 @gacha_group.command(name="viewcard", description="View a gacha card!")
 async def gacha_viewcard(ctx : discord.Interaction, id: int, show:bool=False):
-    if not Permissions.banned(ctx):
-        success,card = gachalib.cards.get_card_by_id(id)
-        if success:
-            if gachalib.cards_inventory.ownsCard(id=card.card_id,uid=ctx.user.id)[0] or Permissions.gacha_approve_check(ctx=ctx) or ctx.user.id == card.maker_id:
-                image=gachalib.get_small_thumbnail(card)
-                await ctx.response.send_message(
-                    view=gachalib.views.card.GachaView(card, image), file=image, ephemeral=not show,
-                    allowed_mentions=discord.AllowedMentions(users=False)
-                )
-            else:
-                await ctx.response.send_message("YOU DON'T OWN THIS CARD YOU PIRATE",ephemeral=True)
+    success,card = gachalib.cards.get_card_by_id(id)
+    if success:
+        if gachalib.cards_inventory.ownsCard(id=card.card_id,uid=ctx.user.id)[0] or Permissions.gacha_approve_check(ctx=ctx) or ctx.user.id == card.maker_id:
+            image=gachalib.get_small_thumbnail(card)
+            await ctx.response.send_message(
+                view=gachalib.views.card.GachaView(card, image), file=image, ephemeral=not show,
+                allowed_mentions=discord.AllowedMentions(users=False)
+            )
         else:
-            await ctx.response.send_message("Card doesn't exist!",ephemeral=True)
+            await ctx.response.send_message("YOU DON'T OWN THIS CARD YOU PIRATE",ephemeral=True)
+    else:
+        await ctx.response.send_message("Card doesn't exist!",ephemeral=True)
 
 
 #@gacha_group.command(name="browsecards", description="Look through cards")
 #async def gacha_browsecards(ctx : discord.Interaction, page:int = 1):
-#    if not Permissions.banned(ctx):
-#        await ctx.response.send_message("command disabled!", ephemeral=True)
-#        if page <= 0: page = 1
-#
-#        view = gachalib.BrowserView(False,page=page)
-#
-#        embed = gachalib.cardBrowserEmbed(uid=-1, cards=view.cards, page=page,inventory=False)
-#
-#        if type(embed) == discord.Embed:
-#            await ctx.response.send_message(content="", embed=embed, view=view)
-#        else:
-#            await ctx.response.send_message(content=embed, embed=None, view=view)
+    #await ctx.response.send_message("command disabled!", ephemeral=True)
+    #if page <= 0: page = 1
+    #
+    #view = gachalib.BrowserView(False,page=page)
+    #
+    #embed = gachalib.cardBrowserEmbed(uid=-1, cards=view.cards, page=page,inventory=False)
+    #
+    #if type(embed) == discord.Embed:
+    #    await ctx.response.send_message(content="", embed=embed, view=view)
+    #else:
+    #    await ctx.response.send_message(content=embed, embed=None, view=view)
 
 
 @gacha_group.command(name="submitcard", description="Submit a new gacha card!")
@@ -95,219 +92,213 @@ async def gacha_submitcard(ctx : discord.Interaction, name: str, description: st
     if not Permissions.check_if_in_main_guid(ctx=ctx): 
         await ctx.response.send_message("You can only run this if you're in the main server!", ephemeral=True)
         return
-    if not Permissions.banned(ctx):
-        approval_channel = await Channels.get_channel(channel_def=Channels.get_channels(channeltype=Channels.CHANNEL_CARD_REVIEWS)[0])
+    approval_channel = await Channels.get_channel(channel_def=Channels.get_channels(channeltype=Channels.CHANNEL_CARD_REVIEWS)[0])
 
-        a = Bot.Deweybase.read_data(statement=Bot.Deweybase.create_read_statement(table="gacha",values=['id']), parameters=())
-        if len(a) == 0:
-            next_id = 1
-        else:
-            next_id = a[len(a)-1][0] + 1
+    a = Bot.Deweybase.read_data(statement=Bot.Deweybase.create_read_statement(table="gacha",values=['id']), parameters=())
+    if len(a) == 0:
+        next_id = 1
+    else:
+        next_id = a[len(a)-1][0] + 1
         
-        if not image.content_type or image.content_type.split("/")[0] != "image":
-            await ctx.response.send_message(
-                f"Your \"IMAGE\" was not an image. I think. Try again with a REAL image.", ephemeral=True,
-            )
-            return
-
-        extension = image.filename.split(".")
-        extension = extension[len(extension)-1]
-
-        filename = f'CARD-{next_id}'
-
-        # uploading images can take a bit so we should do somethimg so it doesnt time out
-        await ctx.response.defer()
-        
-        imagefp = io.BytesIO()
-        await image.save(fp=imagefp)
-
-        def save_file(path:str, filename:str, fp:io.BytesIO):
-            if Bot.DeweyConfig["file-saving"] == "WebDAV":
-                fp.seek(0) # SEEKING IS IMPORTANT MAKE SURE TO SEEK BEFORE READING. IT.
-                dewey_webdav.WebDAVClient(
-                    url=Bot.DeweyConfig["webdav-url"],
-                    username=Bot.DeweyConfig["webdav-username"],
-                    password=Bot.DeweyConfig["webdav-password"]
-                ).upload_file(
-                    #path=f"{Bot.DeweyConfig["image-save-path"]}/{filename}.{extension}",
-                    path=f"{path}/{filename}",
-                    fp=fp
-                )
-            elif Bot.DeweyConfig["file-saving"] == "Local":
-                fp.seek(0)
-                with open(file=f"{path}/{filename}", mode="wb") as f:
-                    f.write(fp.read())
-            else:
-                raise Exception("file-saving is not WebDAV or Local")
-        print(extension)
-        save_file(path=f"{Bot.DeweyConfig["image-save-path"]}",filename=f"{filename}.{extension}",fp=imagefp)
-
-        small: list[Image.Image] = []
-        inv_frames: list[Image.Image] = []
-        inv_small: list[Image.Image] = []
-        durations: list[int] = []
-
-        # Loop over each frame in the animated image
-        img = Image.open(fp=imagefp)
-        
-        for frame in ImageSequence.Iterator(img):
-            small.append(ImageOps.contain(frame, (350, 500)))
-            inv_frames.append(ImageOps.invert(frame.convert("RGB")))
-            inv_small.append(ImageOps.contain(inv_frames[-1], (350, 500)))
-            durations.append(frame.info.get("duration", 40))
-        
-        path = f"{Bot.DeweyConfig["image-save-path"]}"
-        ext = "png"
-
-        # stupid
-        img_small = io.BytesIO() #     f"{path}/small/{filename}.{ext}"
-        img_evil = io.BytesIO() #      f"{path}/E{filename}.{ext}"
-        img_smallevil = io.BytesIO() # f"{path}/small/E{filename}.{ext}"
-
-        if len(small) > 1:
-            ext = "gif"
-            small[0].save(
-                fp=img_small,format="GIF",save_all=True,append_images=small[1:],loop=0,durations=durations,disposal=2
-            )
-            inv_frames[0].save(
-                fp=img_evil,format="GIF",save_all=True,append_images=inv_frames[1:],loop=0,durations=durations
-            )
-            inv_small[0].save(
-                fp=img_smallevil,format="GIF",save_all=True,append_images=inv_small[1:],loop=0,durations=durations
-            )
-        else:
-            small[0].save(fp=img_small,         format="png")
-            inv_frames[0].save(fp=img_evil,     format="png")
-            inv_small[0].save(fp=img_smallevil, format="png")
-
-
-        save_file(path=f"{path}/small", filename=f"{filename}.{ext}",fp=img_small)
-        save_file(path=f"{path}",       filename=f"E{filename}.{ext}",fp=img_evil)
-        save_file(path=f"{path}/small", filename=f"E{filename}.{ext}",fp=img_smallevil)
-
-        gachalib.cards.register_new_card(userid=ctx.user.id,messageid=-1,id=next_id,name=name,description=description,rarity="None",filename=f"{filename}.{extension}")
-
-        embed = gachalib.gacha_embed(
-            card=gachalib.types.Card(name=name, description=description,rarity="None",filename=f"{filename}.{extension}"),
-            title="gacha request!!", description=f"New request for a gacha card from <@{ctx.user.id}> (id = {next_id})"
-            )
-        message_view = gachalib.views.request.RequestView()
-        assert isinstance(approval_channel,(discord.TextChannel,discord.Thread,discord.DMChannel)), "approval channel assertion"
-        message_view.message = await approval_channel.send(f"```{additional_info}```" if additional_info else "", embed=embed,view=message_view)
-
-        gachalib.cards.update_card(next_id,"request_message_id", message_view.message.id)
-        
-        await ctx.followup.send (
-            f"Dewey submitted your gacha card for approval!!! (ID of {next_id})", ephemeral=True,
+    if not image.content_type or image.content_type.split("/")[0] != "image":
+        await ctx.response.send_message(
+            f"Your \"IMAGE\" was not an image. I think. Try again with a REAL image.", ephemeral=True,
         )
+        return
+
+    extension = image.filename.split(".")
+    extension = extension[len(extension)-1]
+
+    filename = f'CARD-{next_id}'
+
+    # uploading images can take a bit so we should do somethimg so it doesnt time out
+    await ctx.response.defer()
+        
+    imagefp = io.BytesIO()
+    await image.save(fp=imagefp)
+
+    def save_file(path:str, filename:str, fp:io.BytesIO):
+        if Bot.DeweyConfig["file-saving"] == "WebDAV":
+            fp.seek(0) # SEEKING IS IMPORTANT MAKE SURE TO SEEK BEFORE READING. IT.
+            dewey_webdav.WebDAVClient(
+                url=Bot.DeweyConfig["webdav-url"],
+                username=Bot.DeweyConfig["webdav-username"],
+                password=Bot.DeweyConfig["webdav-password"]
+            ).upload_file(
+                #path=f"{Bot.DeweyConfig["image-save-path"]}/{filename}.{extension}",
+                path=f"{path}/{filename}",
+                fp=fp
+            )
+        elif Bot.DeweyConfig["file-saving"] == "Local":
+            fp.seek(0)
+            with open(file=f"{path}/{filename}", mode="wb") as f:
+                f.write(fp.read())
+        else:
+            raise Exception("file-saving is not WebDAV or Local")
+    print(extension)
+    save_file(path=f"{Bot.DeweyConfig["image-save-path"]}",filename=f"{filename}.{extension}",fp=imagefp)
+
+    small: list[Image.Image] = []
+    inv_frames: list[Image.Image] = []
+    inv_small: list[Image.Image] = []
+    durations: list[int] = []
+
+    # Loop over each frame in the animated image
+    img = Image.open(fp=imagefp)
+        
+    for frame in ImageSequence.Iterator(img):
+        small.append(ImageOps.contain(frame, (350, 500)))
+        inv_frames.append(ImageOps.invert(frame.convert("RGB")))
+        inv_small.append(ImageOps.contain(inv_frames[-1], (350, 500)))
+        durations.append(frame.info.get("duration", 40))
+        
+    path = f"{Bot.DeweyConfig["image-save-path"]}"
+    ext = "png"
+
+    # stupid
+    img_small = io.BytesIO() #     f"{path}/small/{filename}.{ext}"
+    img_evil = io.BytesIO() #      f"{path}/E{filename}.{ext}"
+    img_smallevil = io.BytesIO() # f"{path}/small/E{filename}.{ext}"
+
+    if len(small) > 1:
+        ext = "gif"
+        small[0].save(
+            fp=img_small,format="GIF",save_all=True,append_images=small[1:],loop=0,durations=durations,disposal=2
+        )
+        inv_frames[0].save(
+            fp=img_evil,format="GIF",save_all=True,append_images=inv_frames[1:],loop=0,durations=durations
+        )
+        inv_small[0].save(
+            fp=img_smallevil,format="GIF",save_all=True,append_images=inv_small[1:],loop=0,durations=durations
+        )
+    else:
+        small[0].save(fp=img_small,         format="png")
+        inv_frames[0].save(fp=img_evil,     format="png")
+        inv_small[0].save(fp=img_smallevil, format="png")
+
+
+    save_file(path=f"{path}/small", filename=f"{filename}.{ext}",fp=img_small)
+    save_file(path=f"{path}",       filename=f"E{filename}.{ext}",fp=img_evil)
+    save_file(path=f"{path}/small", filename=f"E{filename}.{ext}",fp=img_smallevil)
+
+    gachalib.cards.register_new_card(userid=ctx.user.id,messageid=-1,id=next_id,name=name,description=description,rarity="None",filename=f"{filename}.{extension}")
+
+    embed = gachalib.gacha_embed(
+        card=gachalib.types.Card(name=name, description=description,rarity="None",filename=f"{filename}.{extension}"),
+        title="gacha request!!", description=f"New request for a gacha card from <@{ctx.user.id}> (id = {next_id})"
+        )
+    message_view = gachalib.views.request.RequestView()
+    assert isinstance(approval_channel,(discord.TextChannel,discord.Thread,discord.DMChannel)), "approval channel assertion"
+    message_view.message = await approval_channel.send(f"```{additional_info}```" if additional_info else "", embed=embed,view=message_view)
+
+    gachalib.cards.update_card(next_id,"request_message_id", message_view.message.id)
+        
+    await ctx.followup.send (
+        f"Dewey submitted your gacha card for approval!!! (ID of {next_id})", ephemeral=True,
+    )
 
 @gacha_group.command(name="self-submissions", description="View cards you submitted")
 async def gacha_browsecards(ctx : discord.Interaction, page:int = 1):
-    if not Permissions.banned(ctx):
-        if page <= 0: page = 1
+    if page <= 0: page = 1
 
-        view = gachalib.views.card_display.BrowserView(inventory=False,page=page,cards=gachalib.cards.get_cards_sent_by_id(ctx.user.id)[1])
+    view = gachalib.views.card_display.BrowserView(inventory=False,page=page,cards=gachalib.cards.get_cards_sent_by_id(ctx.user.id)[1])
 
-        embed = gachalib.cardBrowserEmbed(uid=-1, cards=view.cards, page=page,inventory=False)
+    embed = gachalib.cardBrowserEmbed(uid=-1, cards=view.cards, page=page,inventory=False)
 
-        if type(embed) == discord.Embed:
-            await ctx.response.send_message(content="", embed=embed, view=view)
-        else:
-            await ctx.response.send_message(content=embed, view=view)
+    if type(embed) == discord.Embed:
+        await ctx.response.send_message(content="", embed=embed, view=view)
+    else:
+        await ctx.response.send_message(content=embed, view=view)
 
 @gacha_group.command(name="editcard", description="Re-submit an edited gacha card (or admin)!")
 async def gacha_editcard(ctx : discord.Interaction, id: int, name: str = "", description: str = ""):
     if not Permissions.check_if_in_main_guid(ctx=ctx): 
         await ctx.response.send_message("You can only run this if you're in the main server!", ephemeral=True)
         return
-    if not Permissions.banned(ctx):
-        approval_channel = await Channels.get_channel(channel_def=Channels.get_channels(channeltype=Channels.CHANNEL_CARD_REVIEWS)[0])
+    approval_channel = await Channels.get_channel(channel_def=Channels.get_channels(channeltype=Channels.CHANNEL_CARD_REVIEWS)[0])
 
-        success, card = gachalib.cards.get_card_by_id(id)
+    success, card = gachalib.cards.get_card_by_id(id)
 
-        if success and (card.maker_id == ctx.user.id or Permissions.gacha_approve_check(ctx=ctx)):
-            changed_anything = False
-            if name != "" and name != card.name:
-                gachalib.cards.update_card(id,"name",name)
-                changed_anything = True
-            if description != "" and description != card.description:
-                gachalib.cards.update_card(id,"description",description)
-                changed_anything = True
+    if success and (card.maker_id == ctx.user.id or Permissions.gacha_approve_check(ctx=ctx)):
+        changed_anything = False
+        if name != "" and name != card.name:
+            gachalib.cards.update_card(id,"name",name)
+            changed_anything = True
+        if description != "" and description != card.description:
+            gachalib.cards.update_card(id,"description",description)
+            changed_anything = True
             
-            await ctx.response.send_message("Updated",ephemeral=True)
-            if changed_anything:
-                gachalib.cards.update_card(id,"accepted",False)
-                _, card = gachalib.cards.get_card_by_id(id)
+        await ctx.response.send_message("Updated",ephemeral=True)
+        if changed_anything:
+            gachalib.cards.update_card(id,"accepted",False)
+            _, card = gachalib.cards.get_card_by_id(id)
 
-                embed = gachalib.gacha_embed(
-                card=card,
-                title="gacha EDIT request!!", description=f"New EDIT request for a gacha card from <@{ctx.user.id}> (id = {id})"
-                )
-                message_view = gachalib.views.request.RequestView()
-                assert isinstance(approval_channel,(discord.TextChannel,discord.Thread,discord.DMChannel)), "approval channel assertion"
-                message_view.message = await approval_channel.send(embed=embed,view=message_view)
-                gachalib.cards.update_card(id,"request_message_id",message_view.message.id)
-        else:
-            await ctx.response.send_message("Card does not exist or you don't own it!",ephemeral=True)
+            embed = gachalib.gacha_embed(
+            card=card,
+            title="gacha EDIT request!!", description=f"New EDIT request for a gacha card from <@{ctx.user.id}> (id = {id})"
+            )
+            message_view = gachalib.views.request.RequestView()
+            assert isinstance(approval_channel,(discord.TextChannel,discord.Thread,discord.DMChannel)), "approval channel assertion"
+            message_view.message = await approval_channel.send(embed=embed,view=message_view)
+            gachalib.cards.update_card(id,"request_message_id",message_view.message.id)
+    else:
+        await ctx.response.send_message("Card does not exist or you don't own it!",ephemeral=True)
 
 
 @gacha_group.command(name="stats", description="card stats")
 async def gacha_stats(ctx : discord.Interaction, user: discord.Member | discord.User | None = None):
-    if not Permissions.banned(ctx):
-        if user == None: user = ctx.user
+    if user == None: user = ctx.user
 
-        embed = discord.Embed(title="Statistics", description="WIP, i was just curious abpuit these :) stats :)")
-        embed.add_field(name="Total Cards", value=len(gachalib.cards.get_cards()[1]))
-        embed.add_field(name="Total issued cards", value=len(gachalib.cards_inventory.get_all_issued()))
-        embed.add_field(name="Total held cards (waiting)", value=len(gachalib.cards.get_unapproved_cards()[1]))
-        embed.add_field(name=f"How many cards {'**YOU**' if user.id == ctx.user.id else '**THEY**'} have (excl. evil)", value=len(gachalib.cards_inventory.get_users_cards(user_id=user.id,include_evil=False)[1]))
-        embed.add_field(name=f"How many cards {'**YOU**' if user.id == ctx.user.id else '**THEY**'} have (incl. evil)", value=len(gachalib.cards_inventory.get_users_cards(user_id=user.id,include_evil=True)[1]))
+    embed = discord.Embed(title="Statistics", description="WIP, i was just curious abpuit these :) stats :)")
+    embed.add_field(name="Total Cards", value=len(gachalib.cards.get_cards()[1]))
+    embed.add_field(name="Total issued cards", value=len(gachalib.cards_inventory.get_all_issued()))
+    embed.add_field(name="Total held cards (waiting)", value=len(gachalib.cards.get_unapproved_cards()[1]))
+    embed.add_field(name=f"How many cards {'**YOU**' if user.id == ctx.user.id else '**THEY**'} have (excl. evil)", value=len(gachalib.cards_inventory.get_users_cards(user_id=user.id,include_evil=False)[1]))
+    embed.add_field(name=f"How many cards {'**YOU**' if user.id == ctx.user.id else '**THEY**'} have (incl. evil)", value=len(gachalib.cards_inventory.get_users_cards(user_id=user.id,include_evil=True)[1]))
 
-        await ctx.response.send_message(embed=embed)
+    await ctx.response.send_message(embed=embed)
 
 
 @gacha_group.command(name="stats-spread", description="card spread")
 async def gacha_stats_spread(ctx : discord.Interaction):
-    if not Permissions.banned(ctx):
-        embed = discord.Embed(title="Statistics", description="WIP, i was just curious abpuit these :) stats :)")
-        spread = {}
+    embed = discord.Embed(title="Statistics", description="WIP, i was just curious abpuit these :) stats :)")
+    spread = {}
 
-        for i in get_args(gachalib.Rarities):
-            spread[i] = 0
+    for i in get_args(gachalib.Rarities):
+        spread[i] = 0
 
-        cards = gachalib.cards_inventory.get_all_issued()
-        cards_ = []
+    cards = gachalib.cards_inventory.get_all_issued()
+    cards_ = []
 
-        for i in cards:
-            success, card = gachalib.cards.get_card_by_id(card_id=i.card_id)
-            if success: cards_.append(card)
+    for i in cards:
+        success, card = gachalib.cards.get_card_by_id(card_id=i.card_id)
+        if success: cards_.append(card)
 
-        for card in cards_:
-            spread[card.rarity] += 1
+    for card in cards_:
+        spread[card.rarity] += 1
 
-        for rarityname,count in spread.items():
-            embed.add_field(name=rarityname, value=f"has {count}")
+    for rarityname,count in spread.items():
+        embed.add_field(name=rarityname, value=f"has {count}")
 
-        await ctx.response.send_message(embed=embed)
+    await ctx.response.send_message(embed=embed)
 
 @gacha_group.command(name="stats-accepted-spread", description="accepted card spread")
 async def gacha_stats_accepted_spread(ctx : discord.Interaction):
-    if not Permissions.banned(ctx):
-        embed = discord.Embed(title="Statistics", description="WIP, i was just curious abpuit these :) stats :)")
-        spread = {}
+    embed = discord.Embed(title="Statistics", description="WIP, i was just curious abpuit these :) stats :)")
+    spread = {}
 
-        for i in get_args(gachalib.Rarities):
-            spread[i] = 0
+    for i in get_args(gachalib.Rarities):
+        spread[i] = 0
 
-        _, cards = gachalib.cards.get_cards()
+    _, cards = gachalib.cards.get_cards()
 
-        for card in cards:
-            spread[card.rarity] += 1
+    for card in cards:
+        spread[card.rarity] += 1
 
-        for rarityname,count in spread.items():
-            embed.add_field(name=rarityname, value=f"has {count}")
+    for rarityname,count in spread.items():
+        embed.add_field(name=rarityname, value=f"has {count}")
 
-        await ctx.response.send_message(embed=embed)
+    await ctx.response.send_message(embed=embed)
 
 # Self card management
 #######################################
@@ -315,32 +306,30 @@ async def gacha_stats_accepted_spread(ctx : discord.Interaction):
 
 @gacha_group.command(name="inventory", description="View your inventory!")
 async def gacha_inventory(ctx : discord.Interaction, show: bool=True, view_button: bool=False):
-    if not Permissions.banned(ctx):
-        layout = gachalib.views.card_display.InventoryView(ctx.user, button=view_button, page=1)
-        await ctx.response.send_message(view=layout, ephemeral=not show)
+    layout = gachalib.views.card_display.InventoryView(ctx.user, button=view_button, page=1)
+    await ctx.response.send_message(view=layout, ephemeral=not show)
 
 
 @gacha_group.command(name="inventory-completion", description="View your progress in collecting!")
 async def gacha_inventory_completion(ctx : discord.Interaction):
-    if not Permissions.banned(ctx):
-        _,a = gachalib.cards_inventory.get_users_cards(ctx.user.id)
-        _,b = gachalib.cards.get_approved_cards()
-        c = []
-        cards_had,evil_cards_had,cards_total = 0,0,len(b)
+    _,a = gachalib.cards_inventory.get_users_cards(ctx.user.id)
+    _,b = gachalib.cards.get_approved_cards()
+    c = []
+    cards_had,evil_cards_had,cards_total = 0,0,len(b)
 
-        for i in a:
-            c.append(i.tocard()[1])
+    for i in a:
+        c.append(i.tocard()[1])
 
-        c = gachalib.cards.group_like_cards(a=c)
+    c = gachalib.cards.group_like_cards(a=c)
 
-        for i in c:
-            if i[0].accepted:
-                if i[0].card_id < 0:
-                    evil_cards_had += 1
-                else:
-                    cards_had += 1
+    for i in c:
+        if i[0].accepted:
+            if i[0].card_id < 0:
+                evil_cards_had += 1
+            else:
+                cards_had += 1
 
-        await ctx.response.send_message(f"You have {cards_had}/{cards_total} ({round((cards_had/cards_total)*100,2)}%)\n\
+    await ctx.response.send_message(f"You have {cards_had}/{cards_total} ({round((cards_had/cards_total)*100,2)}%)\n\
 Evil cards: {evil_cards_had}/{cards_total} ({round((evil_cards_had/cards_total)*100,2)}%)")
 
 
@@ -349,35 +338,34 @@ async def gacha_roll(ctx : discord.Interaction):
     if not Permissions.check_if_in_main_guid(ctx=ctx): 
         await ctx.response.send_message("You can only run this if you're in the main server!", ephemeral=True)
         return
-    if not Permissions.banned(ctx):
-        timestamp = gachalib.gacha_user.get_timestamp()
-        last_use = gachalib.gacha_user.get_user_timeout(ctx.user.id).last_use
-        time_out = Bot.DeweyConfig["roll-timeout"] # 3600 seconds for 1 hr
-        if (timestamp - last_use) > (time_out) or last_use == -1:
-            cards = []
-            for i in range(3):
-                success, got_card = gachalib.cards.random_card_by_rarity(gachalib.random_rarity(restraint=False if i >= 2 else True))
-                if success:
-                    cards.append(got_card)
+    timestamp = gachalib.gacha_user.get_timestamp()
+    last_use = gachalib.gacha_user.get_user_timeout(ctx.user.id).last_use
+    time_out = Bot.DeweyConfig["roll-timeout"] # 3600 seconds for 1 hr
+    if (timestamp - last_use) > (time_out) or last_use == -1:
+        cards = []
+        for i in range(3):
+            success, got_card = gachalib.cards.random_card_by_rarity(gachalib.random_rarity(restraint=False if i >= 2 else True))
+            if success:
+                cards.append(got_card)
 
-            embed = discord.Embed(title="Gacha roll!", description=f"You rolled {len(cards)} cards!", color=gachalib.rarityColors[gachalib.rarest_card(cards).rarity])
+        embed = discord.Embed(title="Gacha roll!", description=f"You rolled {len(cards)} cards!", color=gachalib.rarityColors[gachalib.rarest_card(cards).rarity])
 
-            for i in cards:
-                gachalib.cards_inventory.give_user_card(ctx.user.id, i.card_id)
-                user_cards = gachalib.cards_inventory.get_users_cards_by_card_id(ctx.user.id, i.card_id)
-                numText = "[New]" if len(user_cards[1]) < 2 else f"[{len(user_cards[1])}x]"
-                desc = i.description
-                if len(desc) > 100:
-                    desc = desc[:100-3] + "..."
-                embed.add_field(name=f"{numText} {i.name}\n({i.rarity})", value=f"{desc}\n-# ID: {i.card_id}")
+        for i in cards:
+            gachalib.cards_inventory.give_user_card(ctx.user.id, i.card_id)
+            user_cards = gachalib.cards_inventory.get_users_cards_by_card_id(ctx.user.id, i.card_id)
+            numText = "[New]" if len(user_cards[1]) < 2 else f"[{len(user_cards[1])}x]"
+            desc = i.description
+            if len(desc) > 100:
+                desc = desc[:100-3] + "..."
+            embed.add_field(name=f"{numText} {i.name}\n({i.rarity})", value=f"{desc}\n-# ID: {i.card_id}")
 
-            await ctx.response.send_message(embed=embed, view=gachalib.views.pack.PackView(cards))
+        await ctx.response.send_message(embed=embed, view=gachalib.views.pack.PackView(cards))
             
-            gachalib.gacha_user.set_user_timeout(ctx.user.id,gachalib.gacha_user.get_timestamp())
-        else:
-            await ctx.response.send_message(
-                f"Aw! You're in Dewey Timeout! Try again <t:{last_use+time_out}:R>"
-            )
+        gachalib.gacha_user.set_user_timeout(ctx.user.id,gachalib.gacha_user.get_timestamp())
+    else:
+        await ctx.response.send_message(
+            f"Aw! You're in Dewey Timeout! Try again <t:{last_use+time_out}:R>"
+        )
 
 
 if Bot.DeweyConfig["deweycoins-enabled"]:
@@ -462,12 +450,11 @@ async def gacha_trade(ctx : discord.Interaction, user:discord.Member|discord.Use
     if not Permissions.check_if_in_main_guid(ctx=ctx): 
         await ctx.response.send_message("You can only run this if you're in the main server!", ephemeral=True)
         return
-    if not Permissions.banned(ctx):
-        if ctx.user.id == user.id:
-            await ctx.response.send_message("you can't send a trade request to yurself, dummy!!", ephemeral=True)
-            return
-        trade = gachalib.types.Trade(user1=ctx.user, user2=user)
-        await ctx.response.send_message(view=gachalib.trade.TradeRequestView(trade))
+    if ctx.user.id == user.id:
+        await ctx.response.send_message("you can't send a trade request to yurself, dummy!!", ephemeral=True)
+        return
+    trade = gachalib.types.Trade(user1=ctx.user, user2=user)
+    await ctx.response.send_message(view=gachalib.trade.TradeRequestView(trade))
 
 #@gacha_group.command(name="send-card", description="Give someone a card")
 #async def gacha_send_card(ctx : discord.Interaction, inv_id:int, user:discord.Member):
@@ -487,9 +474,8 @@ gacha_settings_group = discord.app_commands.Group(name="settings", description="
 
 @gacha_settings_group.command(name="roll-reminders", description="Enable/disable gacha rolling reminders")
 async def gacha_settings_roll_reminders(ctx : discord.Interaction, set:bool):
-    if not Permissions.banned(ctx):
-        gacha_settings.set_setting(uid=ctx.user.id, name="roll_reminder_dm", value=set)
-        await ctx.response.send_message("Okay, you will be reminded when you can roll." if set else "Okay, you won't be reminded when you can roll")
+    gacha_settings.set_setting(uid=ctx.user.id, name="roll_reminder_dm", value=set)
+    await ctx.response.send_message("Okay, you will be reminded when you can roll." if set else "Okay, you won't be reminded when you can roll")
 
 
 
