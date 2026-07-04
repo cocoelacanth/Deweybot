@@ -5,6 +5,8 @@ import discord
 import discord.abc
 import Bot
 
+# FYI adding a new channel type, add a variable called CHANNEL_(name) and increment the number, add it to channel_literal, and then copy an entry in the channel_tree and personalize it
+
 TYPE_DM      = 1
 TYPE_CHANNEL = 2
 CHANNEL_GFAD_SEARCH           = 1
@@ -13,11 +15,13 @@ CHANNEL_ERRORS                = 3
 CHANNEL_GOD_CHANNEL           = 4
 CHANNEL_REPEAT_LOG            = 5
 CHANNEL_SUGGESTIONS           = 6
+CHANNEL_HONEYPOT              = 7
 
 channel_literal = Literal[
     "CHANNEL_GFAD_SEARCH", "CHANNEL_CARD_REVIEWS",
     "CHANNEL_ERRORS", "CHANNEL_GOD_CHANNEL",
-    "CHANNEL_REPEAT_LOG", "CHANNEL_SUGGESTIONS"
+    "CHANNEL_REPEAT_LOG", "CHANNEL_SUGGESTIONS",
+    "CHANNEL_HONEYPOT"
 ]
 type_literal       = Literal["TYPE_DM", "TYPE_CHANNEL"]
 
@@ -60,6 +64,13 @@ channel_tree = {
     CHANNEL_SUGGESTIONS: {
         "name": "CHANNEL_SUGGESTIONS",
         "id": CHANNEL_SUGGESTIONS,
+        "max": 1,
+        "dm": [],
+        "channel": [],
+    },
+    CHANNEL_HONEYPOT: {
+        "name": "CHANNEL_HONEYPOT",
+        "id": CHANNEL_HONEYPOT,
         "max": 1,
         "dm": [],
         "channel": [],

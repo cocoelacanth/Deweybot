@@ -80,6 +80,20 @@ if Bot.DeweyConfig["suggestions-enabled"]:
         return
     Bot.client.on_message_functions.append(suggestions_reaction_message)
 
+if Bot.DeweyConfig["honeypot"]:
+    async def honeypot_handler(message: discord.Message):
+        channels = Channels.get_channels(channeltype=Channels.CHANNEL_HONEYPOT)
+        channels_actual = []
+        for i in channels:
+            if i[0] == 2:
+                channels_actual.append(await Channels.get_channel(channel_def=i))
+
+        if message.channel in channels_actual: #OOPS SOMEONE SENT SOMETHING IN THE HONEYPOT
+            if not Permissions.check_permission(ctx=message.author, permission=Permissions.PERMISSION_HONEYPOT_EXEMPT): # OOPS THEY ARENT EXEMPT
+                print("im gonna kill this guy")
+
+    Bot.client.on_message_functions.append(honeypot_handler)
+
 
 @admin_group.command(name="repeat", description="!-ADMIN ONLY-! repeat what said :thumbs_up:")
 @discord.app_commands.allowed_installs(guilds=True, users=False)

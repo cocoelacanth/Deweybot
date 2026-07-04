@@ -11,8 +11,9 @@ PERMISSION_ADMIN           = 1
 PERMISSION_GFAD_DISALLOWED = 2
 PERMISSION_REPEAT          = 3
 PERMISSION_GACHA_APPROVE   = 4
+PERMISSION_HONEYPOT_EXEMPT = 5
 
-permission_literal = Literal["PERMISSION_ADMIN", "PERMISSION_GFAD_DISALLOWED", "PERMISSION_REPEAT", "PERMISSION_GACHA_APPROVE"]
+permission_literal = Literal["PERMISSION_ADMIN", "PERMISSION_GFAD_DISALLOWED", "PERMISSION_REPEAT", "PERMISSION_GACHA_APPROVE", "PERMISSION_HONEYPOT_EXEMPT"]
 type_literal       = Literal["TYPE_ROLE", "TYPE_MEMBER"]
 
 permission_tree = {
@@ -41,6 +42,13 @@ permission_tree = {
         "name": "PERMISSION_GACHA_APPROVE",
         "inherit_admin": True,
         "id": PERMISSION_GACHA_APPROVE,
+        "users": [],
+        "roles": []
+    },
+    PERMISSION_HONEYPOT_EXEMPT: {
+        "name": "PERMISSION_HONEYPOT_EXEMPT",
+        "inherit_admin": False,
+        "id": PERMISSION_HONEYPOT_EXEMPT,
         "users": [],
         "roles": []
     }
