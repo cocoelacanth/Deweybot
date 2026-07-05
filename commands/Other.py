@@ -90,7 +90,19 @@ if Bot.DeweyConfig["honeypot"]:
 
         if message.channel in channels_actual: #OOPS SOMEONE SENT SOMETHING IN THE HONEYPOT
             if not Permissions.check_permission(ctx=message.author, permission=Permissions.PERMISSION_HONEYPOT_EXEMPT): # OOPS THEY ARENT EXEMPT
-                print("im gonna kill this guy")
+                assert isinstance(message.author, discord.Member), "the honeypot channel had a message with a user instead of a member"
+                assert Bot.client.main_guild, "no main guild"
+                role = Bot.client.main_guild.get_role(Bot.DeweyConfig["honeypot-ban-role"]) 
+                assert role, "could not find role" # my beautiful tri-assertion beam
+                await message.author.add_roles(role, reason="honeypot activation")
+
+                channeldef = Channels.get_channels(channeltype=Channels.CHANNEL_ERRORS)
+                print(channeldef)
+                if not len(channeldef) == 0:
+                    channel = await Channels.get_channel(channel_def=channeldef[0])
+
+                    assert isinstance(channel,(discord.TextChannel, discord.Thread, discord.DMChannel)), "error channel assertion"
+                    await channel.send(f"UID {message.author.id} \"{message.author.display_name}\" just activated my sweet... delicious... honey...")
 
     Bot.client.on_message_functions.append(honeypot_handler)
 

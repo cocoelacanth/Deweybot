@@ -45,6 +45,8 @@ gif-enabled:
 reminders-enabled: 
 grok-responses: 
 warf-reactions: 
+honeypot: 
+honeypot-ban-role:  # ID
 
 
 emoji-dewey: "" # Emoji that you would type <:Name:ID>

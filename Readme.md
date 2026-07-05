@@ -2,7 +2,7 @@
 Discord bot using discord.py for the [ditzykitty](https://www.youtube.com/@ditzykittys) (and [nightwatch](https://www.youtube.com/@NIGHTWATCHprod)) discord server
 
 ## Running
-Copy `examples/dewey.yaml.example` to the same directory as StartBot.py and fill it out
+Copy `docs/examples/dewey.yaml.example` to the same directory as StartBot.py and fill it out
 
 After filling out the config file, run `tools/init_databases.py` to initalize the databases you set up.
 
