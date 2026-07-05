@@ -203,7 +203,7 @@ async def list_permission(ctx : discord.Interaction, permission:Permissions.perm
     for i in Permissions.permission_tree[permission_id]["roles"]:
         roles_embed.add_field(name=f"Role", value=f"<@&{i}>")
 
-    await ctx.response.send_message(content=f"Permission for {permission}", embeds=[users_embed,roles_embed])
+    await ctx.response.send_message(content=f"Permission for {permission} ({"inherits admin" if Permissions.permission_tree[permission_id]["inherit_admin"] else "does not inherit from admin"})", embeds=[users_embed,roles_embed])
 
 
 
@@ -261,7 +261,9 @@ async def list_channel(ctx : discord.Interaction, type: Channels.channel_literal
     for i in Channels.channel_tree[channel_type_id]["channel"]:
         channels_embed.add_field(name=f"Role", value=f"<#{i}>")
 
-    await ctx.response.send_message(content=f"Channels for {type}", embeds=[dm_embed,channels_embed])
+    await ctx.response.send_message(content=f"Channels for {type}" + 
+                                    f"(count {Channels.channel_tree[channel_type_id]["dm"] + Channels.channel_tree[channel_type_id]["channel"]}/{Channels.channel_tree[channel_type_id]["max"]})" 
+                                    if not Channels.channel_tree[channel_type_id]["max"] == -1 else "", embeds=[dm_embed,channels_embed])
 
 
 Bot.tree.add_command(admin_group)
